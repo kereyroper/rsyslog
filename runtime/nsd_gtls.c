@@ -23,6 +23,7 @@
  * A copy of the LGPL can be found in the file "COPYING.LESSER" in this distribution.
  */
 #include "config.h"
+#include <execinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -1638,6 +1639,18 @@ Send(nsd_t *pNsd, uchar *pBuf, ssize_t *pLenBuf)
 			uchar *pErr = gtlsStrerror(iSent);
 			errmsg.LogError(0, RS_RET_GNUTLS_ERR, "unexpected GnuTLS error %d in %s:%d: %s\n", iSent, __FILE__, __LINE__, pErr);
 			free(pErr);
+			errmsg.LogError(0, RS_RET_GNUTLS_ERR, "kerey was here");
+			void **bt = malloc(1023);
+			int size = backtrace(bt, sizeof(bt)/sizeof(void *));
+			if (size > 0) {
+				char **symbols;
+				symbols = backtrace_symbols(bt, size);
+				for (int i = 0; i < size; i++) {
+					errmsg.LogError(0, RS_RET_GNUTLS_ERR, "%s", symbols[i]);
+				}
+				free(symbols);
+			}
+			free(bt);
 			gnutls_perror(iSent);
 			ABORT_FINALIZE(RS_RET_GNUTLS_ERR);
 		}

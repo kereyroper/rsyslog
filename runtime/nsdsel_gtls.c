@@ -22,6 +22,7 @@
  */
 #include "config.h"
 
+#include <execinfo.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
@@ -165,6 +166,18 @@ doRetry(nsd_gtls_t *pNsd)
 		uchar *pErr = gtlsStrerror(gnuRet);
 		errmsg.LogError(0, RS_RET_GNUTLS_ERR, "unexpected GnuTLS error %d in %s:%d: %s\n", gnuRet, __FILE__, __LINE__, pErr); \
 		free(pErr);
+		errmsg.LogError(0, RS_RET_GNUTLS_ERR, "kerey was here");
+		void **bt = malloc(1023);
+		int size = backtrace(bt, sizeof(bt)/sizeof(void *));
+		if (size > 0) {
+			char **symbols;
+			symbols = backtrace_symbols(bt, size);
+			for (int i = 0; i < size; i++) {
+				errmsg.LogError(0, RS_RET_GNUTLS_ERR, "%s", symbols[i]);
+			}
+			free(symbols);
+		}
+		free(bt);
 		pNsd->rtryCall = gtlsRtry_None; /* we are also done... ;) */
 		ABORT_FINALIZE(RS_RET_GNUTLS_ERR);
 	}
